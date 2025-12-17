@@ -175,9 +175,9 @@
                 <option value="jp">日本語</option>
                 <option value="cn">中文</option>
             </select>
-            <a href="index.html" class="nav-btn active">Make List</a>
-            <a href="gallery.html" class="nav-btn">Gallery</a>
-            <a href="stats.html" class="nav-btn">Stats</a>
+            <a href="index.html" class="nav-btn active" id="nav-btn-make">Make List</a>
+            <a href="gallery.html" class="nav-btn" id="nav-btn-gallery">Gallery</a>
+            <a href="stats.html" class="nav-btn" id="nav-btn-stats">Stats</a>
         </div>
     </div>
 
@@ -246,7 +246,11 @@
                 submitSuccess: "저장되었습니다!<br>갤러리 페이지로 이동합니다.",
                 saveError: "저장 중 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.",
                 yes: "확인",
-                no: "취소"
+                no: "취소",
+                // [수정] 네비게이션 번역 추가
+                navMake: "제작하기",
+                navGallery: "갤러리",
+                navStats: "통계"
             },
             en: {
                 title: "2025 Arknights Skin Year-End",
@@ -258,7 +262,11 @@
                 submitSuccess: "Saved successfully!<br>Redirecting to gallery...",
                 saveError: "Error saving data.<br>Please try again later.",
                 yes: "Yes",
-                no: "No"
+                no: "No",
+                // [수정]
+                navMake: "Make List",
+                navGallery: "Gallery",
+                navStats: "Stats"
             },
             jp: {
                 title: "2025 アークナイツ コーデ 年末決算",
@@ -270,7 +278,11 @@
                 submitSuccess: "保存されました！<br>ギャラリーページへ移動します。",
                 saveError: "保存エラーが発生しました。",
                 yes: "確認",
-                no: "キャンセル"
+                no: "キャンセル",
+                // [수정]
+                navMake: "作成",
+                navGallery: "ギャラリー",
+                navStats: "統計"
             },
             cn: {
                 title: "2025 明日方舟 时装 年终盘点",
@@ -282,7 +294,11 @@
                 submitSuccess: "保存成功！<br>即将跳转到画廊页面。",
                 saveError: "保存失败，请稍后重试。",
                 yes: "确认",
-                no: "取消"
+                no: "取消",
+                // [수정]
+                navMake: "制作",
+                navGallery: "画廊",
+                navStats: "统计"
             }
         };
 
@@ -376,6 +392,11 @@
             document.getElementById('txt-pool').textContent = t.pool;
             document.getElementById('modal-yes').textContent = t.yes;
             document.getElementById('modal-no').textContent = t.no;
+            
+            // [수정] 네비게이션 텍스트 업데이트
+            document.getElementById('nav-btn-make').textContent = t.navMake;
+            document.getElementById('nav-btn-gallery').textContent = t.navGallery;
+            document.getElementById('nav-btn-stats').textContent = t.navStats;
         }
 
         function loadImages() {
