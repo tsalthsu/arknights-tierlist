@@ -207,7 +207,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // [수정] writeBatch, doc, increment, setDoc 추가 (데이터 최적화를 위해 필요)
+        // [수정] updateDoc 등은 batch 메서드로 쓰이므로 import에 명시 안해도 되지만, 
+        // writeBatch, doc, increment 등은 필요합니다.
         import { getFirestore, collection, addDoc, writeBatch, doc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -223,7 +224,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // [추가] 점수 계산을 위한 매핑
         const scoreMap = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'F': 0 };
 
         const pathPrefix = "img/"; 
@@ -307,7 +307,6 @@
             const icon = document.getElementById('theme-icon');
             icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
 
-            // 언어 설정 복원
             const savedLang = localStorage.getItem('lang');
             if (savedLang && i18n[savedLang]) {
                 currentLang = savedLang;
@@ -321,9 +320,8 @@
             createFixedTiers();
         };
 
-        // [수정됨] 데이터 저장 및 통계 누적 함수
+        // [수정된 함수]
         window.submitTierList = async function() {
-            // 1. 데이터 준비
             const resultData = {
                 timestamp: new Date().toISOString(),
                 tiers: {}
@@ -331,7 +329,6 @@
             
             let totalPlacedCount = 0;
 
-            // DOM에서 배치된 카드 정보 수집
             document.querySelectorAll('.tier-row').forEach(row => {
                 const tierName = row.getAttribute('data-tier');
                 const items = [];
@@ -344,7 +341,6 @@
                 resultData.tiers[tierName] = items;
             });
 
-            // 최소 개수 체크
             if (totalPlacedCount < 5) {
                 window.showModal(i18n[currentLang].submitFail, null, false);
                 return;
@@ -356,50 +352,42 @@
             submitBtn.disabled = true;
 
             try {
-                // [핵심 로직 변경] 일괄 쓰기(Batch) 시작
                 const batch = writeBatch(db);
 
-                // A. 개별 결과 저장 (기존 tier_results 컬렉션)
-                // addDoc 대신 doc()으로 레퍼런스를 먼저 만들고 batch.set 사용
+                // 1. 개별 기록 저장 (create new doc -> set)
                 const newHistoryRef = doc(collection(db, "tier_results"));
                 batch.set(newHistoryRef, resultData);
 
-                // B. 통계 요약 문서 업데이트 (statistics/summary 문서)
+                // 2. 통계 요약 문서 업데이트 (update existing doc -> update)
                 const statsRef = doc(db, "statistics", "summary");
                 
-                // 업데이트할 필드 준비
                 const updates = {
                     totalSubmissions: increment(1),
                     lastUpdated: new Date().toISOString()
                 };
 
-                // 각 스킨별 점수 및 카운트 누적
                 Object.entries(resultData.tiers).forEach(([tier, items]) => {
                     const score = scoreMap[tier];
                     if (score === undefined) return;
 
                     items.forEach(skinId => {
-                        // Firestore 키에 '.'이 포함되면 안 되므로 '_'로 치환
                         const safeKey = skinId.replace(/\./g, '_');
                         
-                        // 점수 합산
+                        // [핵심] 여기서 사용하는 'skins.xxx.yyy' 형태의 키는
+                        // batch.update()를 써야만 중첩 필드 업데이트로 인식됩니다.
                         updates[`skins.${safeKey}.totalScore`] = increment(score);
-                        // 투표 횟수 합산
                         updates[`skins.${safeKey}.count`] = increment(1);
-                        // 티어별 횟수 합산
                         updates[`skins.${safeKey}.tierCounts.${tier}`] = increment(1);
-                        // 원본 ID 저장 (나중에 복원을 위해)
                         updates[`skins.${safeKey}.id`] = skinId;
                     });
                 });
 
-                // setDoc + merge: true를 사용하여 문서가 없으면 생성, 있으면 병합
-                batch.set(statsRef, updates, { merge: true });
+                // [수정됨] batch.set -> batch.update 로 변경
+                // 마이그레이션을 이미 하셨으므로 문서는 반드시 존재합니다.
+                batch.update(statsRef, updates);
 
-                // 배치 커밋 (전송)
                 await batch.commit();
 
-                // 성공 모달 표시 후 이동
                 window.showModal(i18n[currentLang].submitSuccess, () => {
                     window.location.href = 'gallery.html';
                 }, false);
@@ -535,3 +523,4 @@
     </script>
 </body>
 </html>
+
