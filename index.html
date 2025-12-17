@@ -135,6 +135,15 @@
             transform: translateY(-7px) scale(1.02); box-shadow: 0 10px 20px var(--shadow);
             border-color: var(--text-color); z-index: 10;
         }
+        
+        /* [추가] 드래그 중인 아이템 스타일 (forceFallback 사용 시) */
+        .sortable-fallback {
+            opacity: 0.8;
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            cursor: grabbing;
+        }
+
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--modal-overlay); display: none;
@@ -207,8 +216,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // [수정] updateDoc 등은 batch 메서드로 쓰이므로 import에 명시 안해도 되지만, 
-        // writeBatch, doc, increment 등은 필요합니다.
         import { getFirestore, collection, addDoc, writeBatch, doc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -320,7 +327,6 @@
             createFixedTiers();
         };
 
-        // [수정된 함수]
         window.submitTierList = async function() {
             const resultData = {
                 timestamp: new Date().toISOString(),
@@ -354,11 +360,9 @@
             try {
                 const batch = writeBatch(db);
 
-                // 1. 개별 기록 저장 (create new doc -> set)
                 const newHistoryRef = doc(collection(db, "tier_results"));
                 batch.set(newHistoryRef, resultData);
 
-                // 2. 통계 요약 문서 업데이트 (update existing doc -> update)
                 const statsRef = doc(db, "statistics", "summary");
                 
                 const updates = {
@@ -372,9 +376,6 @@
 
                     items.forEach(skinId => {
                         const safeKey = skinId.replace(/\./g, '_');
-                        
-                        // [핵심] 여기서 사용하는 'skins.xxx.yyy' 형태의 키는
-                        // batch.update()를 써야만 중첩 필드 업데이트로 인식됩니다.
                         updates[`skins.${safeKey}.totalScore`] = increment(score);
                         updates[`skins.${safeKey}.count`] = increment(1);
                         updates[`skins.${safeKey}.tierCounts.${tier}`] = increment(1);
@@ -382,8 +383,6 @@
                     });
                 });
 
-                // [수정됨] batch.set -> batch.update 로 변경
-                // 마이그레이션을 이미 하셨으므로 문서는 반드시 존재합니다.
                 batch.update(statsRef, updates);
 
                 await batch.commit();
@@ -441,14 +440,17 @@
                 card.innerHTML = `<img src="${pathPrefix}skin_${number}.png" onerror="this.parentElement.style.display='none'">`;
                 pool.appendChild(card);
             }
+            // [수정] 스크롤 옵션 및 forceFallback 적용
             new Sortable(pool, { 
-        group: 'shared', 
-        animation: 150,
-        scroll: true,           // 스크롤 기능 켜기 (기본값이 true지만 명시)
-        scrollSensitivity: 300, // 스크롤이 시작되는 가장자리와의 거리 (픽셀 단위, 기본값 30보다 크게 설정 추천)
-        scrollSpeed: 20         // 스크롤 속도 (기본값 10)
-    });
-}
+                group: 'shared', 
+                animation: 150,
+                scroll: true,           
+                scrollSensitivity: 100, 
+                scrollSpeed: 20,
+                forceFallback: true,        // 브라우저 기본 드래그 대신 JS로 처리 (휠 스크롤 가능)
+                fallbackClass: "sortable-fallback" 
+            });
+        }
 
         function createFixedTiers() {
             const container = document.getElementById('tier-container');
@@ -467,15 +469,19 @@
                 row.appendChild(label);
                 row.appendChild(content);
                 container.appendChild(row);
+                
+                // [수정] 스크롤 옵션 및 forceFallback 적용
                 new Sortable(content, { 
-            group: 'shared', 
-            animation: 150,
-            scroll: true,           // 스크롤 기능 켜기
-            scrollSensitivity: 300, // 가장자리 감지 범위 (이 값을 늘리면 더 안쪽에서부터 스크롤이 시작됨)
-            scrollSpeed: 20         // 스크롤 속도
-        });
-    });
-}
+                    group: 'shared', 
+                    animation: 150,
+                    scroll: true,
+                    scrollSensitivity: 100,
+                    scrollSpeed: 20,
+                    forceFallback: true,        // 휠 스크롤 허용
+                    fallbackClass: "sortable-fallback"
+                });
+            });
+        }
 
         window.tryReset = function() {
             const itemsInTiers = document.querySelectorAll('.tier-content .skin-card');
@@ -535,6 +541,3 @@
     </script>
 </body>
 </html>
-
-
-
