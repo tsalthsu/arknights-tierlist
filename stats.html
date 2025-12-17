@@ -448,7 +448,7 @@
             // 마우스 들어옴: 딜레이 후 활성화
             el.addEventListener('mouseenter', () => {
                 if (hoverTimer) clearTimeout(hoverTimer);
-                hoverTimer = setTimeout(activate, 150); // 0.15초 딜레이
+                hoverTimer = setTimeout(activate, 80); // 0.15초 딜레이
             });
 
             // 마우스 나감: 즉시 비활성화 + 타이머 취소
@@ -533,3 +533,4 @@
     </script>
 </body>
 </html>
+
