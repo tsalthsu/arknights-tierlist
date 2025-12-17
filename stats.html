@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - Arknights Skin Tier List</title>
+    <style>
+        /* --- 공통 스타일 --- */
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --panel-bg: #222;
+            --border-color: #444;
+            --accent-color: #1976d2;
+            
+            /* 티어 색상 (미세 조정) */
+            --c-s: #ff7f7f; --c-a: #ffbf7f; --c-b: #ffff7f;
+            --c-c: #7fff7f; --c-d: #7fbfff; --c-f: #bfbfbf;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- 네비게이션 --- */
+        .nav-bar {
+            width: 100%; max-width: 1200px; display: flex;
+            justify-content: space-between; align-items: center;
+            margin-bottom: 40px; border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        .nav-title { font-size: 1.5rem; font-weight: bold; text-transform: uppercase; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-btn {
+            text-decoration: none; color: var(--text-color);
+            background-color: var(--panel-bg); padding: 8px 16px;
+            border-radius: 4px; border: 1px solid var(--border-color); transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: var(--border-color); }
+        .nav-btn.active { background-color: var(--accent-color); border-color: var(--accent-color); }
+
+        /* --- 통계 컨테이너 --- */
+        .stats-container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .chart-title-area { text-align: center; margin-bottom: 30px; }
+        .chart-main-title { font-size: 1.8rem; margin: 0; }
+        .chart-sub-title { color: #888; margin-top: 5px; font-size: 0.9rem; }
+
+        /* --- 차트 영역 (세로 길이 1500px로 증가) --- */
+        .chart-area {
+            position: relative;
+            width: 100%;
+            height: 1500px; /* 길~게 늘림 */
+            border-left: 3px solid var(--border-color);
+            border-bottom: 3px solid var(--border-color);
+            margin-left: 50px; 
+            background: repeating-linear-gradient(
+                to right,
+                transparent,
+                transparent 40px,
+                rgba(255,255,255,0.02) 40px,
+                rgba(255,255,255,0.02) 80px
+            );
+        }
+
+        /* 가이드 라인 스타일 */
+        .guide-line {
+            position: absolute;
+            left: 0; right: 0;
+            border-top: 1px dashed #333; /* 기본 선은 연하게 */
+            pointer-events: none;
+        }
+        .guide-line.major {
+            border-top: 1px solid #666; /* 메인 등급(S, A, B)은 진하게 */
+        }
+        
+        .guide-label {
+            position: absolute;
+            left: -60px;
+            transform: translateY(-50%);
+            font-weight: bold; font-size: 1rem;
+            text-align: right; width: 50px;
+            color: #888;
+        }
+        /* 메인 등급 강조 */
+        .major .guide-label { font-size: 1.4rem; color: #fff; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+        /* 색상 매칭 */
+        .c-s { color: var(--c-s) !important; }
+        .c-a { color: var(--c-a) !important; }
+        .c-b { color: var(--c-b) !important; }
+        .c-c { color: var(--c-c) !important; }
+
+        /* 스킨 아이콘 */
+        .skin-point {
+            position: absolute;
+            width: 50px; height: 90px;
+            border-radius: 4px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            transform: translate(-50%, -50%);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            z-index: 1;
+        }
+        .skin-point:hover {
+            z-index: 100 !important;
+            transform: translate(-50%, -50%) scale(1.6);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+            border-color: #fff !important;
+        }
+
+        /* 툴팁 */
+        .point-tooltip {
+            position: absolute;
+            bottom: 100px; left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.95);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+            text-align: center;
+            border: 1px solid #666;
+            z-index: 101;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .skin-point:hover .point-tooltip { opacity: 1; }
+        .score-badges { display: flex; gap:3px; justify-content: center; margin-top: 6px;}
+        .score-badge { font-size: 0.7rem; padding: 2px 5px; border-radius: 3px; color:#000; font-weight: bold;}
+
+        /* 로딩 */
+        .loader {
+            border: 4px solid #333; border-top: 4px solid var(--accent-color);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; position: absolute;
+            top: 200px; left: 50%; margin-left: -20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <div class="nav-title">Statistics</div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-btn">← Make Tier List</a>
+            <a href="gallery.html" class="nav-btn">Gallery</a>
+            <a href="stats.html" class="nav-btn active">Statistics</a>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="chart-title-area">
+            <h2 class="chart-main-title">평균 티어 세부 순위</h2>
+            <p class="chart-sub-title" id="total-submissions">데이터 불러오는 중...</p>
+        </div>
+
+        <div class="chart-area" id="chart-area">
+            <div id="loader" class="loader"></div>
+
+            <div class="guide-line major" style="top: 0%;">
+                <span class="guide-label c-s">S+</span>
+            </div>
+            <div class="guide-line" style="top: 6.6%;">
+                <span class="guide-label">S</span>
+            </div>
+            <div class="guide-line" style="top: 13.3%;">
+                <span class="guide-label">S-</span>
+            </div>
+
+            <div class="guide-line major" style="top: 20%;">
+                <span class="guide-label c-a">A+</span>
+            </div>
+            <div class="guide-line" style="top: 26.6%;">
+                <span class="guide-label">A</span>
+            </div>
+            <div class="guide-line" style="top: 33.3%;">
+                <span class="guide-label">A-</span>
+            </div>
+
+            <div class="guide-line major" style="top: 40%;">
+                <span class="guide-label c-b">B+</span>
+            </div>
+            <div class="guide-line" style="top: 46.6%;">
+                <span class="guide-label">B</span>
+            </div>
+            <div class="guide-line" style="top: 53.3%;">
+                <span class="guide-label">B-</span>
+            </div>
+
+            <div class="guide-line major" style="top: 60%;">
+                <span class="guide-label c-c">C+</span>
+            </div>
+            <div class="guide-line" style="top: 66.6%;">
+                <span class="guide-label">C</span>
+            </div>
+            <div class="guide-line" style="top: 73.3%;">
+                <span class="guide-label">C-</span>
+            </div>
+
+            <div class="guide-line major" style="top: 80%;">
+                <span class="guide-label c-d">D</span>
+            </div>
+
+            <div class="guide-line major" style="top: 100%; border-top-style: solid;">
+                <span class="guide-label c-f">F</span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // 🔥 Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7z3JsiRzPSXnOdxtazbtq2J41oORv9og",
+            authDomain: "skin-cad0f.firebaseapp.com",
+            projectId: "skin-cad0f",
+            storageBucket: "skin-cad0f.firebasestorage.app",
+            messagingSenderId: "343015548730",
+            appId: "1:343015548730:web:d65503a46d1fbabbf59203",
+            measurementId: "G-P1NC2B9TE5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const pathPrefix = "img/";
+        
+        // 점수 매핑 (입력 데이터 기준)
+        const scoreMap = {
+            'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'F': 0
+        };
+        
+        // 색상 매핑 (출력 기준)
+        const colorMap = {
+            'S': '#ff7f7f', 'A': '#ffbf7f', 'B': '#ffff7f',
+            'C': '#7fff7f', 'D': '#7fbfff', 'F': '#bfbfbf'
+        };
+
+        async function loadAndRenderStats() {
+            const chartArea = document.getElementById('chart-area');
+            const loader = document.getElementById('loader');
+            const subTitle = document.getElementById('total-submissions');
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "tier_results"));
+                const totalDocs = querySnapshot.size;
+                subTitle.textContent = `총 ${totalDocs}건의 데이터 분석됨`;
+
+                if (totalDocs === 0) {
+                    loader.style.display = 'none';
+                    chartArea.innerHTML += '<p style="text-align:center; padding-top:100px; color:#666;">데이터가 없습니다.</p>';
+                    return;
+                }
+
+                // 집계 시작
+                const skinStats = {};
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data().tiers;
+                    Object.keys(data).forEach(tier => {
+                        const items = data[tier];
+                        if (scoreMap[tier] === undefined) return;
+                        
+                        const score = scoreMap[tier];
+                        items.forEach(skinId => {
+                            if (!skinStats[skinId]) {
+                                skinStats[skinId] = { totalScore: 0, count: 0, tierCounts: {S:0,A:0,B:0,C:0,D:0,F:0} };
+                            }
+                            skinStats[skinId].totalScore += score;
+                            skinStats[skinId].count += 1;
+                            if(skinStats[skinId].tierCounts[tier] !== undefined) {
+                                skinStats[skinId].tierCounts[tier] += 1;
+                            }
+                        });
+                    });
+                });
+
+                // 배열 변환
+                const rankedSkins = [];
+                Object.keys(skinStats).forEach(skinId => {
+                    const stats = skinStats[skinId];
+                    if (stats.count >= 1) { // 최소 1회 이상 등장
+                        const average = stats.totalScore / stats.count;
+                        rankedSkins.push({
+                            id: skinId,
+                            avg: average,
+                            count: stats.count,
+                            tierCounts: stats.tierCounts
+                        });
+                    }
+                });
+
+                // 점수 높은 순 정렬
+                rankedSkins.sort((a, b) => b.avg - a.avg);
+                loader.style.display = 'none';
+
+                // 아이콘 배치
+                rankedSkins.forEach((skin, index) => {
+                    createSkinPoint(skin, chartArea, index);
+                });
+
+            } catch (error) {
+                console.error("Error:", error);
+                loader.style.display = 'none';
+                subTitle.textContent = "오류 발생 (Console 확인)";
+            }
+        }
+
+        function createSkinPoint(skinData, container, index) {
+            const el = document.createElement('div');
+            el.className = 'skin-point';
+            el.style.backgroundImage = `url(${pathPrefix}${skinData.id})`;
+            
+            // Y축 위치 계산 (5점 만점 기준)
+            // 5.0 = 0% (Top), 0.0 = 100% (Bottom)
+            const topPercent = (5.0 - skinData.avg) / 5.0 * 100;
+            el.style.top = `${topPercent}%`;
+
+            // X축 위치 (중앙 집중형 랜덤)
+            const randomX = (Math.random() + Math.random() + Math.random()) / 3;
+            const leftPercent = 10 + (randomX * 80); 
+            el.style.left = `${leftPercent}%`;
+            
+            // Z-index & Border
+            el.style.zIndex = Math.floor(skinData.avg * 100);
+            
+            // 대표 색상 결정
+            let mainTier = 'F';
+            if (skinData.avg >= 4.5) mainTier = 'S';
+            else if (skinData.avg >= 3.5) mainTier = 'A';
+            else if (skinData.avg >= 2.5) mainTier = 'B';
+            else if (skinData.avg >= 1.5) mainTier = 'C';
+            else if (skinData.avg >= 0.5) mainTier = 'D';
+            
+            el.style.borderColor = colorMap[mainTier];
+
+            // 상세 점수 툴팁
+            const tc = skinData.tierCounts;
+            const tooltipHTML = `
+                <div style="font-weight:bold; font-size:1rem; margin-bottom:4px; color:${colorMap[mainTier]};">
+                    ${skinData.avg.toFixed(2)}점
+                </div>
+                <div style="color:#bbb; font-size:0.8rem; margin-bottom:5px;">총 ${skinData.count}회</div>
+                <div class="score-badges">
+                    <span class="score-badge" style="background:${colorMap.S}">S:${tc.S}</span>
+                    <span class="score-badge" style="background:${colorMap.A}">A:${tc.A}</span>
+                    <span class="score-badge" style="background:${colorMap.B}">B:${tc.B}</span>
+                </div>
+            `;
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'point-tooltip';
+            tooltip.innerHTML = tooltipHTML;
+            el.appendChild(tooltip);
+
+            container.appendChild(el);
+        }
+
+        loadAndRenderStats();
+
+    </script>
+</body>
+</html>
