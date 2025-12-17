@@ -112,10 +112,15 @@
             position: absolute; width: 50px; height: 90px;
             border-radius: 4px; background-size: cover; background-position: center;
             border: 2px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            transform: translate(-50%, -50%); transition: all 0.3s; cursor: pointer; z-index: 1;
+            /* 정렬을 위해 transition에서 left 제외하거나 부드럽게 이동 */
+            transition: transform 0.2s, box-shadow 0.2s; 
+            cursor: pointer; z-index: 1;
+            /* 중심점 기준 배치 */
+            transform: translate(-50%, -50%);
         }
         .skin-point:hover {
-            z-index: 100 !important; transform: translate(-50%, -50%) scale(1.6);
+            z-index: 100 !important; 
+            transform: translate(-50%, -50%) scale(1.6);
             box-shadow: 0 10px 30px rgba(0,0,0,0.9); border-color: #fff !important;
         }
 
@@ -196,7 +201,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        // [수정됨] 마이그레이션을 위한 collection, getDocs와 데이터 조회를 위한 doc, getDoc, writeBatch 포함
         import { getFirestore, doc, getDoc, collection, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -241,7 +245,6 @@
             document.getElementById('nav-btn-make').textContent = t.navMake;
             document.getElementById('nav-btn-gallery').textContent = t.navGallery;
             document.getElementById('nav-btn-stats').textContent = t.navStats;
-
             localStorage.setItem('lang', lang);
         };
 
@@ -265,14 +268,13 @@
             loadAndRenderStats();
         };
 
-        // [수정됨] 단일 문서 읽기로 변경된 로직
         async function loadAndRenderStats() {
             const chartArea = document.getElementById('chart-area');
             const loader = document.getElementById('loader');
             const subTitle = document.getElementById('total-submissions');
 
             try {
-                // 1. 컬렉션 전체 조회 대신 'summary' 문서 하나만 읽음
+                // 1. 통계 요약 문서 가져오기
                 const statsRef = doc(db, "statistics", "summary");
                 const statsSnap = await getDoc(statsRef);
 
@@ -291,25 +293,50 @@
                     return;
                 }
 
-                // 2. 객체 데이터를 배열로 변환 및 정렬
+                // 2. 데이터 가공
                 const rankedSkins = [];
                 Object.values(data.skins).forEach(skinStat => {
                     if (skinStat.count > 0) {
                         rankedSkins.push({
-                            id: skinStat.id, // 파일명 (skin_001.png 등)
+                            id: skinStat.id,
                             avg: skinStat.totalScore / skinStat.count,
                             count: skinStat.count,
-                            tierCounts: skinStat.tierCounts || {S:0,A:0,B:0,C:0,D:0,F:0}
+                            tierCounts: skinStat.tierCounts || {S:0,A:0,B:0,C:0,D:0,F:0},
+                            leftPos: 50 // 기본값
                         });
                     }
                 });
 
-                // 높은 점수 순 정렬
+                // 점수 내림차순 정렬
                 rankedSkins.sort((a, b) => b.avg - a.avg);
+                
+                // 3. [개선] 가로 위치(Left) 계산 (겹침 방지)
+                // 점수 구간(0.25 단위)별로 그룹화하여 균등 배치
+                const binSize = 0.25; 
+                const bins = {};
+
+                rankedSkins.forEach(skin => {
+                    // 점수에 따른 Bin 인덱스 계산 (5.0 -> 20, 0.0 -> 0)
+                    const binIndex = Math.floor(skin.avg / binSize);
+                    if (!bins[binIndex]) bins[binIndex] = [];
+                    bins[binIndex].push(skin);
+                });
+
+                Object.values(bins).forEach(binItems => {
+                    // 같은 구간 내에서 다시 점수순 정렬 (이미 되어있긴 함)
+                    const count = binItems.length;
+                    binItems.forEach((skin, idx) => {
+                        // 10% ~ 90% 사이에서 균등 분할
+                        // 예: 3개면 25%, 50%, 75%
+                        const position = (100 / (count + 1)) * (idx + 1);
+                        skin.leftPos = position;
+                    });
+                });
+
                 loader.style.display = 'none';
 
-                // 3. 차트 렌더링
-                rankedSkins.forEach((skin, index) => {
+                // 4. 렌더링
+                rankedSkins.forEach((skin) => {
                     createSkinPoint(skin, chartArea);
                 });
 
@@ -325,14 +352,14 @@
             el.className = 'skin-point';
             el.style.backgroundImage = `url(${pathPrefix}${skinData.id})`;
             
-            // 점수에 따른 Y축 위치 (5.0 만점 = 0%, 0점 = 100%)
+            // Y축: 점수 (높을수록 위)
             const topPercent = (5.0 - skinData.avg) / 5.0 * 100;
             el.style.top = `${topPercent}%`;
 
-            // X축은 여전히 랜덤 (추후 개선 필요)
-            const leftPercent = 5 + (Math.random() * 90); 
-            el.style.left = `${leftPercent}%`;
+            // X축: 계산된 위치 사용 (겹침 방지)
+            el.style.left = `${skinData.leftPos}%`;
             
+            // Z-index: 점수 높을수록 위 (hover시 최상위)
             el.style.zIndex = Math.floor(skinData.avg * 100);
             
             let mainTier = 'F';
@@ -361,29 +388,17 @@
             container.appendChild(el);
         }
 
-        // ============================================================
-        // [중요] 기존 데이터 마이그레이션 도구
-        // 이 파일을 배포한 뒤, 브라우저 콘솔(F12)에서 await window.runMigration()을 
-        // 딱 한 번만 실행하면 기존 데이터를 summary 문서로 변환합니다.
-        // ============================================================
+        // --- 마이그레이션 도구 (한 번 실행 후 무시됨) ---
         window.runMigration = async function() {
             if (!confirm("정말 마이그레이션을 진행하시겠습니까? (기존 통계 덮어씀)")) return;
-            
-            console.log("Migration started...");
             const subTitle = document.getElementById('total-submissions');
-            subTitle.textContent = "Migrating data... please wait.";
-
+            subTitle.textContent = "Migrating data...";
             try {
-                // 기존 데이터 모두 가져오기 (비용 발생하지만 1회성)
                 const snapshot = await getDocs(collection(db, "tier_results"));
-                if (snapshot.empty) {
-                    alert("데이터가 없습니다.");
-                    return;
-                }
-
+                if (snapshot.empty) { alert("데이터가 없습니다."); return; }
+                
                 const batch = writeBatch(db);
                 const statsRef = doc(db, "statistics", "summary");
-                
                 let totalDocs = 0;
                 const updates = { totalSubmissions: 0, skins: {} };
                 
@@ -391,42 +406,25 @@
                     const data = docSnap.data();
                     totalDocs++;
                     updates.totalSubmissions++;
-                    
                     if (data.tiers) {
                         Object.entries(data.tiers).forEach(([tier, items]) => {
                             const score = scoreMap[tier];
                             if (score === undefined) return;
-                            
                             items.forEach(skinId => {
                                 const safeKey = skinId.replace(/\./g, '_');
-                                if (!updates.skins[safeKey]) {
-                                    updates.skins[safeKey] = { 
-                                        totalScore: 0, count: 0, id: skinId,
-                                        tierCounts: {S:0, A:0, B:0, C:0, D:0, F:0} 
-                                    };
-                                }
+                                if (!updates.skins[safeKey]) updates.skins[safeKey] = { totalScore: 0, count: 0, id: skinId, tierCounts: {S:0, A:0, B:0, C:0, D:0, F:0} };
                                 updates.skins[safeKey].totalScore += score;
                                 updates.skins[safeKey].count += 1;
-                                if(updates.skins[safeKey].tierCounts[tier] !== undefined) {
-                                    updates.skins[safeKey].tierCounts[tier] += 1;
-                                }
+                                if(updates.skins[safeKey].tierCounts[tier] !== undefined) updates.skins[safeKey].tierCounts[tier] += 1;
                             });
                         });
                     }
                 });
-
-                // 통계 문서 저장 (덮어쓰기)
                 batch.set(statsRef, updates); 
                 await batch.commit();
-
-                console.log(`Migration Complete! Processed ${totalDocs} documents.`);
-                alert(`마이그레이션 완료! 총 ${totalDocs}건의 데이터를 처리했습니다.`);
+                alert(`마이그레이션 완료! 총 ${totalDocs}건 처리.`);
                 window.location.reload();
-
-            } catch (e) {
-                console.error(e);
-                alert("오류 발생: " + e.message);
-            }
+            } catch (e) { console.error(e); alert("오류: " + e.message); }
         };
     </script>
 </body>
