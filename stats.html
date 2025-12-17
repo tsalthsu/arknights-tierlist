@@ -196,7 +196,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        // [수정됨] 마이그레이션을 위한 collection, getDocs와 데이터 조회를 위한 doc, getDoc, writeBatch 포함
+        import { getFirestore, doc, getDoc, collection, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC7z3JsiRzPSXnOdxtazbtq2J41oORv9og",
@@ -218,22 +219,18 @@
         const i18n = {
             ko: { 
                 title: "2025 명일방주 스킨 연말정산",
-                // [수정] 네비게이션 번역 추가
                 navMake: "제작하기", navGallery: "갤러리", navStats: "통계" 
             },
             en: { 
                 title: "2025 Arknights Skin Year-End",
-                // [수정]
                 navMake: "Make List", navGallery: "Gallery", navStats: "Stats" 
             },
             jp: { 
                 title: "2025 アークナイツ コーデ 年末決算",
-                // [수정]
                 navMake: "作成", navGallery: "ギャラリー", navStats: "統計" 
             },
             cn: { 
                 title: "2025 明日方舟 时装 年终盘点",
-                // [수정]
                 navMake: "制作", navGallery: "画廊", navStats: "统计" 
             }
         };
@@ -241,7 +238,6 @@
         window.changeLanguage = function(lang) {
             const t = i18n[lang];
             document.getElementById('nav-title').textContent = t.title;
-            // [수정] 네비게이션 텍스트 업데이트
             document.getElementById('nav-btn-make').textContent = t.navMake;
             document.getElementById('nav-btn-gallery').textContent = t.navGallery;
             document.getElementById('nav-btn-stats').textContent = t.navStats;
@@ -249,7 +245,6 @@
             localStorage.setItem('lang', lang);
         };
 
-        // [수정됨] html 태그 타겟
         window.toggleTheme = function() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme') || 'dark';
@@ -270,57 +265,50 @@
             loadAndRenderStats();
         };
 
+        // [수정됨] 단일 문서 읽기로 변경된 로직
         async function loadAndRenderStats() {
             const chartArea = document.getElementById('chart-area');
             const loader = document.getElementById('loader');
             const subTitle = document.getElementById('total-submissions');
 
             try {
-                const querySnapshot = await getDocs(collection(db, "tier_results"));
-                const totalDocs = querySnapshot.size;
-                subTitle.textContent = `Total ${totalDocs} Submissions analyzed`;
+                // 1. 컬렉션 전체 조회 대신 'summary' 문서 하나만 읽음
+                const statsRef = doc(db, "statistics", "summary");
+                const statsSnap = await getDoc(statsRef);
 
-                if (totalDocs === 0) {
+                if (!statsSnap.exists()) {
+                    subTitle.textContent = "No Data yet (Need Migration?)";
                     loader.style.display = 'none';
                     return;
                 }
 
-                const skinStats = {};
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data().tiers;
-                    Object.keys(data).forEach(tier => {
-                        const items = data[tier];
-                        if (scoreMap[tier] === undefined) return;
-                        const score = scoreMap[tier];
-                        items.forEach(skinId => {
-                            if (!skinStats[skinId]) {
-                                skinStats[skinId] = { totalScore: 0, count: 0, tierCounts: {S:0,A:0,B:0,C:0,D:0,F:0} };
-                            }
-                            skinStats[skinId].totalScore += score;
-                            skinStats[skinId].count += 1;
-                            if(skinStats[skinId].tierCounts[tier] !== undefined) {
-                                skinStats[skinId].tierCounts[tier] += 1;
-                            }
-                        });
-                    });
-                });
+                const data = statsSnap.data();
+                const totalDocs = data.totalSubmissions || 0;
+                subTitle.textContent = `Total ${totalDocs} Submissions analyzed`;
 
+                if (!data.skins) {
+                    loader.style.display = 'none';
+                    return;
+                }
+
+                // 2. 객체 데이터를 배열로 변환 및 정렬
                 const rankedSkins = [];
-                Object.keys(skinStats).forEach(skinId => {
-                    const stats = skinStats[skinId];
-                    if (stats.count >= 1) {
+                Object.values(data.skins).forEach(skinStat => {
+                    if (skinStat.count > 0) {
                         rankedSkins.push({
-                            id: skinId,
-                            avg: stats.totalScore / stats.count,
-                            count: stats.count,
-                            tierCounts: stats.tierCounts
+                            id: skinStat.id, // 파일명 (skin_001.png 등)
+                            avg: skinStat.totalScore / skinStat.count,
+                            count: skinStat.count,
+                            tierCounts: skinStat.tierCounts || {S:0,A:0,B:0,C:0,D:0,F:0}
                         });
                     }
                 });
 
+                // 높은 점수 순 정렬
                 rankedSkins.sort((a, b) => b.avg - a.avg);
                 loader.style.display = 'none';
 
+                // 3. 차트 렌더링
                 rankedSkins.forEach((skin, index) => {
                     createSkinPoint(skin, chartArea);
                 });
@@ -328,6 +316,7 @@
             } catch (error) {
                 console.error("Error:", error);
                 loader.style.display = 'none';
+                subTitle.textContent = "Error loading stats";
             }
         }
 
@@ -336,9 +325,11 @@
             el.className = 'skin-point';
             el.style.backgroundImage = `url(${pathPrefix}${skinData.id})`;
             
+            // 점수에 따른 Y축 위치 (5.0 만점 = 0%, 0점 = 100%)
             const topPercent = (5.0 - skinData.avg) / 5.0 * 100;
             el.style.top = `${topPercent}%`;
 
+            // X축은 여전히 랜덤 (추후 개선 필요)
             const leftPercent = 5 + (Math.random() * 90); 
             el.style.left = `${leftPercent}%`;
             
@@ -361,14 +352,82 @@
                     </div>
                     <div style="color:#bbb; font-size:0.8rem; margin-bottom:5px;">${skinData.count} votes</div>
                     <div class="score-badges">
-                        <span class="score-badge" style="background:${colorMap.S}">S:${tc.S}</span>
-                        <span class="score-badge" style="background:${colorMap.A}">A:${tc.A}</span>
-                        <span class="score-badge" style="background:${colorMap.B}">B:${tc.B}</span>
+                        <span class="score-badge" style="background:${colorMap.S}">S:${tc.S || 0}</span>
+                        <span class="score-badge" style="background:${colorMap.A}">A:${tc.A || 0}</span>
+                        <span class="score-badge" style="background:${colorMap.B}">B:${tc.B || 0}</span>
                     </div>
                 </div>
             `;
             container.appendChild(el);
         }
+
+        // ============================================================
+        // [중요] 기존 데이터 마이그레이션 도구
+        // 이 파일을 배포한 뒤, 브라우저 콘솔(F12)에서 await window.runMigration()을 
+        // 딱 한 번만 실행하면 기존 데이터를 summary 문서로 변환합니다.
+        // ============================================================
+        window.runMigration = async function() {
+            if (!confirm("정말 마이그레이션을 진행하시겠습니까? (기존 통계 덮어씀)")) return;
+            
+            console.log("Migration started...");
+            const subTitle = document.getElementById('total-submissions');
+            subTitle.textContent = "Migrating data... please wait.";
+
+            try {
+                // 기존 데이터 모두 가져오기 (비용 발생하지만 1회성)
+                const snapshot = await getDocs(collection(db, "tier_results"));
+                if (snapshot.empty) {
+                    alert("데이터가 없습니다.");
+                    return;
+                }
+
+                const batch = writeBatch(db);
+                const statsRef = doc(db, "statistics", "summary");
+                
+                let totalDocs = 0;
+                const updates = { totalSubmissions: 0, skins: {} };
+                
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    totalDocs++;
+                    updates.totalSubmissions++;
+                    
+                    if (data.tiers) {
+                        Object.entries(data.tiers).forEach(([tier, items]) => {
+                            const score = scoreMap[tier];
+                            if (score === undefined) return;
+                            
+                            items.forEach(skinId => {
+                                const safeKey = skinId.replace(/\./g, '_');
+                                if (!updates.skins[safeKey]) {
+                                    updates.skins[safeKey] = { 
+                                        totalScore: 0, count: 0, id: skinId,
+                                        tierCounts: {S:0, A:0, B:0, C:0, D:0, F:0} 
+                                    };
+                                }
+                                updates.skins[safeKey].totalScore += score;
+                                updates.skins[safeKey].count += 1;
+                                if(updates.skins[safeKey].tierCounts[tier] !== undefined) {
+                                    updates.skins[safeKey].tierCounts[tier] += 1;
+                                }
+                            });
+                        });
+                    }
+                });
+
+                // 통계 문서 저장 (덮어쓰기)
+                batch.set(statsRef, updates); 
+                await batch.commit();
+
+                console.log(`Migration Complete! Processed ${totalDocs} documents.`);
+                alert(`마이그레이션 완료! 총 ${totalDocs}건의 데이터를 처리했습니다.`);
+                window.location.reload();
+
+            } catch (e) {
+                console.error(e);
+                alert("오류 발생: " + e.message);
+            }
+        };
     </script>
 </body>
 </html>
