@@ -6,7 +6,7 @@
     <title>Arknights Skin Tier List</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        /* --- CSS 변수 (테마 시스템) --- */
+        /* --- CSS 스타일 --- */
         :root {
             --bg-color: #1a1a1a;
             --text-color: #ffffff;
@@ -19,8 +19,6 @@
             --modal-overlay: rgba(0, 0, 0, 0.7);
             --shadow: rgba(0,0,0,0.5);
         }
-
-        /* 라이트 모드 변수 */
         [data-theme="light"] {
             --bg-color: #f0f2f5;
             --text-color: #333333;
@@ -33,7 +31,6 @@
             --modal-overlay: rgba(0, 0, 0, 0.3);
             --shadow: rgba(0,0,0,0.1);
         }
-
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -45,8 +42,6 @@
             align-items: center;
             transition: background 0.3s, color 0.3s;
         }
-
-        /* --- 상단 헤더 & 언어 설정 --- */
         .header-area {
             position: relative;
             width: 100%;
@@ -54,7 +49,6 @@
             text-align: center;
             margin-bottom: 20px;
         }
-
         h1 {
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -62,14 +56,7 @@
             padding-bottom: 10px;
             margin: 0 0 20px 0;
         }
-
-        /* 언어 선택기 (우측 상단) */
-        .lang-selector {
-            position: absolute;
-            top: 0;
-            right: 0;
-        }
-
+        .lang-selector { position: absolute; top: 0; right: 0; }
         select {
             background-color: var(--panel-bg);
             color: var(--text-color);
@@ -78,179 +65,73 @@
             border-radius: 4px;
             cursor: pointer;
         }
-
-        /* --- 컨트롤 패널 --- */
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
         .btn {
             background-color: var(--panel-bg);
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            padding: 10px 20px;
+            padding: 10px 25px;
             cursor: pointer;
             font-size: 1rem;
             border-radius: 4px;
+            font-weight: bold;
             transition: all 0.2s;
         }
-
-        .btn:hover { filter: brightness(1.2); }
-        .btn-add { background-color: #2e7d32; color: white; border-color: #1b5e20; }
+        .btn:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        .btn-submit { background-color: #1976d2; color: white; border-color: #0d47a1; }
         .btn-reset { background-color: #c62828; color: white; border-color: #b71c1c; }
-
-        /* --- 테마 토글 버튼 (좌측 하단 고정) --- */
-        .theme-toggle {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: var(--panel-bg);
-            border: 2px solid var(--border-color);
-            color: var(--text-color);
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 10px var(--shadow);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* --- 티어 리스트 --- */
-        .tier-container {
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 50px;
-        }
-
-        .tier-row {
-            display: flex;
-            min-height: 160px;
-            background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            position: relative;
-        }
-
-        .tier-label {
-            width: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: bold;
-            flex-shrink: 0;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-            color: #333;
-            cursor: text;
-        }
-
-        .tier-content {
-            flex-grow: 1;
-            padding: 10px;
-            padding-right: 40px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            background-color: var(--item-bg);
-            align-content: flex-start;
-            transition: background 0.3s;
-        }
-
-        .delete-btn {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 30px;
-            background-color: var(--card-bg);
-            color: #888;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-left: 1px solid var(--border-color);
-        }
-        .delete-btn:hover { background-color: #800; color: white; }
-
-        /* --- 대기열 (Pool) --- */
-        .pool-section {
-            width: 100%;
-            max-width: 1200px;
-            border: 2px dashed var(--border-color);
-            padding: 20px;
-            background-color: var(--panel-bg);
-            transition: background 0.3s;
-        }
         
-        .pool-title { margin-top: 0; margin-bottom: 15px; color: #888; }
-
-        .item-pool {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            min-height: 200px;
+        .tier-container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 50px; }
+        .tier-row { display: flex; min-height: 160px; background-color: var(--panel-bg); border: 1px solid var(--border-color); }
+        .tier-label {
+            width: 100px; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: 900; flex-shrink: 0;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5); color: #333; user-select: none;
         }
-
-        /* --- 카드 디자인 --- */
+        .tier-content {
+            flex-grow: 1; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px;
+            background-color: var(--item-bg); align-content: flex-start; transition: background 0.3s;
+        }
+        .pool-section {
+            width: 100%; max-width: 1200px; border: 2px dashed var(--border-color);
+            padding: 20px; background-color: var(--panel-bg); transition: background 0.3s;
+        }
+        .pool-title { margin-top: 0; margin-bottom: 15px; color: #888; }
+        .item-pool { display: flex; flex-wrap: wrap; gap: 15px; min-height: 200px; }
         .skin-card {
-            width: 100px;
-            height: 180px;
-            background-color: var(--card-bg);
-            border: 1px solid var(--card-border);
-            cursor: grab;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100px; height: 180px; background-color: var(--card-bg);
+            border: 1px solid var(--card-border); cursor: grab; position: relative;
+            overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 2px 5px var(--shadow);
         }
         .skin-card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .skin-card:hover {
-            transform: translateY(-7px) scale(1.02);
-            box-shadow: 0 10px 20px var(--shadow);
-            border-color: var(--text-color);
-            z-index: 10;
+            transform: translateY(-7px) scale(1.02); box-shadow: 0 10px 20px var(--shadow);
+            border-color: var(--text-color); z-index: 10;
         }
-
-        /* --- 커스텀 확인 모달 (Popup) --- */
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--modal-overlay);
-            display: none; /* JS로 제어 */
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--modal-overlay); display: none;
+            justify-content: center; align-items: center; z-index: 1000;
             backdrop-filter: blur(3px);
         }
-
         .modal-box {
-            background-color: var(--modal-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 25px;
-            border-radius: 8px;
-            width: 300px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            background-color: var(--modal-bg); color: var(--text-color);
+            border: 1px solid var(--border-color); padding: 25px; border-radius: 8px;
+            width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-
-        .modal-msg { margin-bottom: 20px; font-size: 1.1rem; }
-
+        .modal-msg { margin-bottom: 20px; font-size: 1.1rem; line-height: 1.5; }
         .modal-actions { display: flex; justify-content: center; gap: 10px; }
-        .modal-btn { padding: 8px 20px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
-        .modal-btn.confirm { background-color: #c62828; color: white; }
+        .modal-btn { padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+        .modal-btn.confirm { background-color: #1976d2; color: white; }
         .modal-btn.cancel { background-color: var(--border-color); color: var(--text-color); }
-
+        .theme-toggle {
+            position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
+            border-radius: 50%; background-color: var(--panel-bg);
+            border: 2px solid var(--border-color); color: var(--text-color);
+            font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 10px var(--shadow);
+            z-index: 100; display: flex; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -258,7 +139,7 @@
     <div class="header-area">
         <h1 id="txt-title">Arknights Skin Tier List</h1>
         <div class="lang-selector">
-            <select id="langSelect" onchange="changeLanguage(this.value)">
+            <select id="langSelect" onchange="window.changeLanguage(this.value)">
                 <option value="ko">한국어</option>
                 <option value="en">English</option>
                 <option value="jp">日本語</option>
@@ -268,9 +149,8 @@
     </div>
 
     <div class="controls">
-        <button class="btn btn-add" onclick="addTier()" id="btn-add">+ Add Tier</button>
-        <button class="btn btn-reset" onclick="tryReset()" id="btn-reset">Reset</button>
-        <button class="btn" onclick="saveImage()" id="btn-save">Save Image (Beta)</button>
+        <button class="btn btn-submit" onclick="window.submitTierList()" id="btn-submit">Submit</button>
+        <button class="btn btn-reset" onclick="window.tryReset()" id="btn-reset">Reset</button>
     </div>
 
     <div class="tier-container" id="tier-container"></div>
@@ -280,114 +160,193 @@
         <div class="item-pool" id="pool"></div>
     </div>
 
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+    <button class="theme-toggle" onclick="window.toggleTheme()">
         <span id="theme-icon">☀️</span>
     </button>
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-box">
-            <div class="modal-msg" id="modal-msg">Are you sure?</div>
+            <div class="modal-msg" id="modal-msg">Message</div>
             <div class="modal-actions">
                 <button class="modal-btn confirm" id="modal-yes">Yes</button>
-                <button class="modal-btn cancel" onclick="closeModal()">No</button>
+                <button class="modal-btn cancel" onclick="window.closeModal()" id="modal-no">No</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- 1. 설정 및 데이터 ---
+    <script type="module">
+        // -----------------------------------------------------------
+        // 🔥 Firebase 설정
+        // -----------------------------------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7z3JsiRzPSXnOdxtazbtq2J41oORv9og",
+            authDomain: "skin-cad0f.firebaseapp.com",
+            projectId: "skin-cad0f",
+            storageBucket: "skin-cad0f.firebasestorage.app",
+            messagingSenderId: "343015548730",
+            appId: "1:343015548730:web:d65503a46d1fbabbf59203",
+            measurementId: "G-P1NC2B9TE5"
+        };
+
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // -----------------------------------------------------------
+        // 로직 시작
+        // -----------------------------------------------------------
         const pathPrefix = "img/"; 
         const totalImages = 110; 
-        const tierColors = ['#ff7f7f', '#ffbf7f', '#ffff7f', '#7fff7f', '#7fbfff', '#7f7fff', '#ff7fff', '#bfbfbf'];
-        
-        // 언어팩
+        const fixedTiers = [
+            { label: 'S', color: '#ff7f7f' },
+            { label: 'A', color: '#ffbf7f' },
+            { label: 'B', color: '#ffff7f' },
+            { label: 'C', color: '#7fff7f' },
+            { label: 'D', color: '#7fbfff' },
+            { label: 'F', color: '#bfbfbf' }
+        ];
+
         const i18n = {
             ko: {
                 title: "명일방주 스킨 티어표",
-                add: "+ 티어 추가",
+                submit: "제출하기",
                 reset: "초기화",
-                save: "이미지 저장 (베타)",
                 pool: "대기열 (드래그하여 이동)",
-                confirmReset: "배치된 아이템이 모두 대기열로 돌아갑니다.<br>계속하시겠습니까?",
-                confirmDelete: "이 티어에 아이템이 있습니다.<br>삭제 시 대기열로 이동됩니다.",
+                confirmReset: "모든 배치가 초기화됩니다.<br>계속하시겠습니까?",
+                submitFail: "최소 5개 이상의 아이템을<br>티어표에 배치해주세요!",
+                submitSuccess: "저장되었습니다!<br>갤러리 페이지로 이동합니다.",
+                saveError: "저장 중 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.",
                 yes: "확인",
                 no: "취소"
             },
             en: {
                 title: "Arknights Skin Tier List",
-                add: "+ Add Tier",
+                submit: "Submit",
                 reset: "Reset",
-                save: "Save Image",
                 pool: "Unranked Skins",
-                confirmReset: "All placed items will return to the pool.<br>Proceed?",
-                confirmDelete: "There are items in this tier.<br>They will be moved to the pool.",
+                confirmReset: "All placements will be reset.<br>Proceed?",
+                submitFail: "Please place at least 5 items<br>to submit.",
+                submitSuccess: "Saved successfully!<br>Redirecting to gallery...",
+                saveError: "Error saving data.<br>Please try again later.",
                 yes: "Yes",
                 no: "No"
             },
             jp: {
                 title: "アークナイツ コーデ Tier表",
-                add: "+ ティア追加",
+                submit: "提出する",
                 reset: "リセット",
-                save: "画像保存",
                 pool: "未配置リスト",
-                confirmReset: "配置されたアイテムが全て戻ります。<br>続けますか？",
-                confirmDelete: "このティアにアイテムがあります。<br>削除するとリストに戻ります。",
+                confirmReset: "全ての配置がリセットされます。<br>続けますか？",
+                submitFail: "5つ以上のアイテムを<br>配置してください。",
+                submitSuccess: "保存されました！<br>ギャラリーページへ移動します。",
+                saveError: "保存エラーが発生しました。",
                 yes: "確認",
                 no: "キャンセル"
             },
             cn: {
                 title: "明日方舟 时装 梯队榜",
-                add: "+ 添加层级",
+                submit: "提交",
                 reset: "重置",
-                save: "保存图片",
                 pool: "未排名皮肤",
-                confirmReset: "所有已放置的物品将返回列表。<br>是否继续？",
-                confirmDelete: "该层级中有物品。<br>删除后将移回列表。",
+                confirmReset: "所有布局将被重置。<br>是否继续？",
+                submitFail: "请至少放置5个物品<br>以进行提交。",
+                submitSuccess: "保存成功！<br>即将跳转到画廊页面。",
+                saveError: "保存失败，请稍后重试。",
                 yes: "确认",
                 no: "取消"
             }
         };
 
         let currentLang = 'ko';
-        let pendingAction = null; // 모달 확인 버튼 클릭 시 실행할 함수 저장
 
-        // --- 2. 초기화 및 언어 감지 ---
         window.onload = function() {
-            detectLanguage();
+            window.detectLanguage();
             loadImages();
-            resetTiers(true); // true = 강제 초기화 (팝업 없이)
-            applyTheme();
+            createFixedTiers();
+            window.applyTheme();
         };
 
-        function detectLanguage() {
-            const userLang = navigator.language.slice(0, 2); // 'ko-KR' -> 'ko'
+        // ★★★ 제출 기능 (수정됨: 갤러리 이동) ★★★
+        window.submitTierList = async function() {
+            const resultData = {
+                timestamp: new Date().toISOString(),
+                tiers: {}
+            };
+            
+            let totalPlacedCount = 0;
+
+            document.querySelectorAll('.tier-row').forEach(row => {
+                const tierName = row.getAttribute('data-tier');
+                const items = [];
+                const cards = row.querySelectorAll('.skin-card');
+                cards.forEach(card => {
+                    const skinId = card.getAttribute('data-id');
+                    items.push(skinId);
+                    totalPlacedCount++;
+                });
+                resultData.tiers[tierName] = items;
+            });
+
+            if (totalPlacedCount < 5) {
+                window.showModal(i18n[currentLang].submitFail, null, false);
+                return;
+            }
+
+            // 로딩 표시
+            const submitBtn = document.getElementById('btn-submit');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = "Saving...";
+            submitBtn.disabled = true;
+
+            try {
+                // Firestore 저장
+                await addDoc(collection(db, "tier_results"), resultData);
+                
+                // 성공 모달 띄우기
+                window.showModal(i18n[currentLang].submitSuccess, () => {
+                    // [수정된 부분] 확인 버튼 누르면 갤러리 페이지로 이동
+                    window.location.href = 'gallery.html';
+                }, false);
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                window.showModal(i18n[currentLang].saveError + "<br>(" + e.message + ")", null, false);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+
+        // --- 기타 기능 함수들 ---
+        window.detectLanguage = function() {
+            const userLang = navigator.language.slice(0, 2);
             if (['ko', 'en', 'ja', 'zh'].includes(userLang)) {
-                // ja -> jp로 매핑 (코드상 편의)
                 currentLang = (userLang === 'ja') ? 'jp' : (userLang === 'zh') ? 'cn' : userLang;
             } else {
-                currentLang = 'en'; // 기본값
+                currentLang = 'en';
             }
             document.getElementById('langSelect').value = currentLang;
-            updateText();
+            window.updateText();
         }
 
-        function changeLanguage(lang) {
+        window.changeLanguage = function(lang) {
             currentLang = lang;
-            updateText();
+            window.updateText();
         }
 
-        function updateText() {
+        window.updateText = function() {
             const t = i18n[currentLang];
             document.getElementById('txt-title').textContent = t.title;
-            document.getElementById('btn-add').textContent = t.add;
+            document.getElementById('btn-submit').textContent = t.submit;
             document.getElementById('btn-reset').textContent = t.reset;
-            document.getElementById('btn-save').textContent = t.save;
             document.getElementById('txt-pool').textContent = t.pool;
             document.getElementById('modal-yes').textContent = t.yes;
-            // 닫기 버튼은 공통이므로 HTML onclick으로 처리
+            document.getElementById('modal-no').textContent = t.no;
         }
 
-        // --- 3. 이미지 로딩 ---
         function loadImages() {
             const pool = document.getElementById('pool');
             pool.innerHTML = '';
@@ -395,135 +354,89 @@
                 const number = String(i).padStart(3, '0');
                 const card = document.createElement('div');
                 card.className = 'skin-card';
+                card.setAttribute('data-id', `skin_${number}.png`);
                 card.innerHTML = `<img src="${pathPrefix}skin_${number}.png" onerror="this.parentElement.style.display='none'">`;
                 pool.appendChild(card);
             }
             new Sortable(pool, { group: 'shared', animation: 150 });
         }
 
-        // --- 4. 티어 관리 로직 ---
-        function createTierRow(labelText = 'New', colorCode = '#ccc') {
+        function createFixedTiers() {
             const container = document.getElementById('tier-container');
-            const row = document.createElement('div');
-            row.className = 'tier-row';
-
-            const label = document.createElement('div');
-            label.className = 'tier-label';
-            label.textContent = labelText;
-            label.style.backgroundColor = colorCode;
-            label.contentEditable = true;
-
-            const content = document.createElement('div');
-            content.className = 'tier-content';
-
-            const delBtn = document.createElement('div');
-            delBtn.className = 'delete-btn';
-            delBtn.innerHTML = '×';
-            
-            // 삭제 버튼 클릭 시 검증
-            delBtn.onclick = function() {
-                if (content.children.length > 0) {
-                    showModal(i18n[currentLang].confirmDelete, () => performDelete(row, content));
-                } else {
-                    performDelete(row, content);
-                }
-            };
-
-            row.appendChild(label);
-            row.appendChild(content);
-            row.appendChild(delBtn);
-            container.appendChild(row);
-
-            new Sortable(content, { group: 'shared', animation: 150 });
+            container.innerHTML = '';
+            fixedTiers.forEach(tier => {
+                const row = document.createElement('div');
+                row.className = 'tier-row';
+                row.setAttribute('data-tier', tier.label);
+                const label = document.createElement('div');
+                label.className = 'tier-label';
+                label.textContent = tier.label;
+                label.style.backgroundColor = tier.color;
+                const content = document.createElement('div');
+                content.className = 'tier-content';
+                content.id = `tier-${tier.label}`;
+                row.appendChild(label);
+                row.appendChild(content);
+                container.appendChild(row);
+                new Sortable(content, { group: 'shared', animation: 150 });
+            });
         }
 
-        function performDelete(row, content) {
-            const pool = document.getElementById('pool');
-            const items = Array.from(content.children);
-            items.forEach(item => pool.appendChild(item));
-            row.remove();
-        }
-
-        function addTier() {
-            const container = document.getElementById('tier-container');
-            const count = container.children.length;
-            const labels = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
-            const nextLabel = labels[count] || String.fromCharCode(65 + count);
-            const nextColor = tierColors[count % tierColors.length];
-            createTierRow(nextLabel, nextColor);
-        }
-
-        // --- 5. 초기화 (Reset) 로직 ---
-        function tryReset() {
-            // 티어 리스트 안에 아이템이 하나라도 있는지 확인
+        window.tryReset = function() {
             const itemsInTiers = document.querySelectorAll('.tier-content .skin-card');
             if (itemsInTiers.length > 0) {
-                showModal(i18n[currentLang].confirmReset, () => resetTiers(false));
-            } else {
-                resetTiers(false);
+                window.showModal(i18n[currentLang].confirmReset, () => {
+                    const pool = document.getElementById('pool');
+                    const allItems = document.querySelectorAll('.skin-card');
+                    allItems.forEach(item => pool.appendChild(item));
+                    sortPoolItems(); 
+                }, true);
             }
         }
 
-        function resetTiers(force = false) {
+        function sortPoolItems() {
             const pool = document.getElementById('pool');
-            // 모든 아이템 복귀
-            const allItems = document.querySelectorAll('.skin-card');
-            allItems.forEach(item => pool.appendChild(item));
-
-            // 티어 재설정
-            const container = document.getElementById('tier-container');
-            container.innerHTML = '';
-            createTierRow('S', tierColors[0]);
-            createTierRow('A', tierColors[1]);
-            createTierRow('B', tierColors[2]);
+            const items = Array.from(pool.children);
+            items.sort((a, b) => a.getAttribute('data-id').localeCompare(b.getAttribute('data-id')));
+            items.forEach(item => pool.appendChild(item));
         }
 
-        // --- 6. 모달 (Popup) 시스템 ---
-        function showModal(msgHTML, callbackAction) {
+        window.showModal = function(msgHTML, callbackYes, hasCancel = true) {
             const modal = document.getElementById('confirmModal');
             document.getElementById('modal-msg').innerHTML = msgHTML;
+            const btnYes = document.getElementById('modal-yes');
+            const btnNo = document.getElementById('modal-no');
+            btnNo.style.display = hasCancel ? 'inline-block' : 'none';
             modal.style.display = 'flex';
             
-            // 'Yes' 버튼에 일회성 이벤트 연결
-            const yesBtn = document.getElementById('modal-yes');
-            // 기존 이벤트 제거 (중복 실행 방지)
-            const newYesBtn = yesBtn.cloneNode(true);
-            yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
-            
+            const newYesBtn = btnYes.cloneNode(true);
+            btnYes.parentNode.replaceChild(newYesBtn, btnYes);
             newYesBtn.onclick = function() {
-                callbackAction();
-                closeModal();
+                if (callbackYes) callbackYes();
+                window.closeModal();
             };
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             document.getElementById('confirmModal').style.display = 'none';
         }
 
-        // --- 7. 테마 (Dark/Light) 시스템 ---
-        function toggleTheme() {
+        window.toggleTheme = function() {
             const body = document.body;
             const currentTheme = body.getAttribute('data-theme');
             const icon = document.getElementById('theme-icon');
-
             if (currentTheme === 'light') {
                 body.setAttribute('data-theme', 'dark');
-                icon.textContent = '☀️'; // 다크모드일 때 해 아이콘 (밝게 하기)
+                icon.textContent = '☀️';
             } else {
                 body.setAttribute('data-theme', 'light');
-                icon.textContent = '🌙'; // 라이트모드일 때 달 아이콘 (어둡게 하기)
+                icon.textContent = '🌙';
             }
         }
-
-        function applyTheme() {
-            // 기본값 다크모드 (HTML CSS 변수 기본값)
+        
+        window.applyTheme = function() {
             document.getElementById('theme-icon').textContent = '☀️';
         }
-
-        function saveImage() {
-            alert("이미지 저장 기능은 html2canvas 라이브러리가 필요합니다.\n추후 구현 예정입니다!");
-        }
-
     </script>
 </body>
 </html>
