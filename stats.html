@@ -13,7 +13,6 @@
     </script>
 
     <style>
-        /* --- 공통 스타일 --- */
         :root {
             --bg-color: #1a1a1a;
             --text-color: #ffffff;
@@ -21,7 +20,6 @@
             --border-color: #444;
             --accent-color: #1976d2;
             --shadow: rgba(0,0,0,0.5);
-            /* 티어 색상 */
             --c-s: #ff7f7f; --c-a: #ffbf7f; --c-b: #ffff7f;
             --c-c: #7fff7f; --c-d: #7fbfff; --c-f: #bfbfbf;
         }
@@ -44,7 +42,6 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        /* --- 네비게이션 --- */
         .nav-bar {
             width: 100%; max-width: 1200px; display: flex;
             justify-content: space-between; align-items: center;
@@ -73,7 +70,6 @@
             margin-right: 10px;
         }
 
-        /* --- 통계 컨테이너 --- */
         .stats-container {
             width: 100%; max-width: 1000px;
             background-color: var(--panel-bg);
@@ -86,16 +82,14 @@
         .chart-main-title { font-size: 1.8rem; margin: 0; }
         .chart-sub-title { color: #888; margin-top: 5px; font-size: 0.9rem; }
 
-        /* --- 차트 영역 --- */
         .chart-area {
             position: relative; width: 100%; height: 1500px;
             border-left: 3px solid var(--border-color);
             border-bottom: 3px solid var(--border-color);
             margin-left: 50px; 
-            /* 은은한 격자 배경 */
             background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
             linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
-            background-size: 100% 6.66%, 10% 100%; /* 세로 간격은 티어 구분에 맞춤 */
+            background-size: 100% 6.66%, 10% 100%;
             background-position: 0 0;
             opacity: 0.9;
         }
@@ -113,20 +107,16 @@
         .c-b { color: var(--c-b) !important; } .c-c { color: var(--c-c) !important; }
         .c-d { color: var(--c-d) !important; } .c-f { color: var(--c-f) !important; }
 
-        /* 스킨 아이콘 */
         .skin-point {
             position: absolute; width: 50px; height: 90px;
             border-radius: 4px; background-size: cover; background-position: center;
             border: 2px solid transparent; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            /* 중심점 기준 배치 */
             transform: translate(-50%, -50%) scale(1); 
-            /* [수정] 부드러운 전환 효과 추가 */
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.27), border-color 0.2s, z-index 0s;
             cursor: pointer; 
-            z-index: 10; /* 기본 z-index */
+            z-index: 10;
         }
 
-        /* [수정] 활성화(호버) 상태 스타일 - z-index를 최상위로 */
         .skin-point.active {
             z-index: 1000 !important; 
             transform: translate(-50%, -50%) scale(1.8);
@@ -134,7 +124,6 @@
             border-color: #fff !important;
         }
 
-        /* 툴팁 스타일 */
         .point-tooltip {
             position: absolute; bottom: 105%; left: 50%; transform: translateX(-50%);
             background-color: rgba(0,0,0,0.9); padding: 12px; border-radius: 8px;
@@ -145,7 +134,6 @@
             transition: opacity 0.2s, transform 0.2s;
             margin-bottom: 10px;
         }
-        /* 화살표 추가 */
         .point-tooltip::after {
             content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px;
             border-width: 6px; border-style: solid; border-color: rgba(0,0,0,0.9) transparent transparent transparent;
@@ -330,66 +318,44 @@
                     }
                 });
 
-                // 점수 높은 순 정렬
                 rankedSkins.sort((a, b) => b.avg - a.avg);
                 loader.style.display = 'none';
 
-                // [수정됨] 스마트 배치 시스템 적용
-                // 이미 배치된 아이템들의 위치를 저장하는 배열: {x, y, width, height} (단위: %)
                 const placedItems = [];
-                
-                // 차트 크기 비율 (아이템 크기 고려)
-                // 가로 100% 중 아이템 폭 약 5~6% 가정, 세로 100% 중 아이템 높이 약 6% 가정
                 const ITEM_W = 6; 
                 const ITEM_H = 6; 
 
                 rankedSkins.forEach((skin) => {
-                    // Y 위치: 점수에 따른 고정 위치 (0 ~ 100%)
                     const topPercent = (5.0 - skin.avg) / 5.0 * 100;
                     
-                    // X 위치: "후보군 추첨(Best Candidate)" 알고리즘 사용
-                    // 랜덤한 위치를 여러 개 뽑아보고, 기존 아이템들과 가장 멀리 떨어진 위치를 선택
                     let bestX = 50;
                     let maxMinDist = -1;
-
-                    // 시도 횟수: 많을수록 분포가 고르지만 느려짐 (10회 정도면 충분)
                     const attempts = 10; 
                     
                     for (let i = 0; i < attempts; i++) {
-                        // 5% ~ 95% 사이 랜덤 X
                         const candidateX = 5 + Math.random() * 90;
-                        
-                        // 가장 가까운 이웃과의 거리 찾기
                         let minDist = 9999;
                         
                         if (placedItems.length === 0) {
-                            minDist = 9999; // 첫 아이템은 무조건 배치
+                            minDist = 9999;
                         } else {
                             for (const p of placedItems) {
-                                // Y축 거리가 너무 멀면(충돌 가능성 없으면) 무시 (최적화)
                                 const dy = Math.abs(p.y - topPercent);
                                 if (dy > ITEM_H) continue; 
 
-                                // X축 거리 계산
                                 const dx = Math.abs(p.x - candidateX);
-                                
-                                // 유클리드 거리 대신 단순 거리 사용 (어차피 Y는 거의 비슷하므로)
                                 const dist = Math.sqrt(dx*dx + dy*dy);
                                 if (dist < minDist) minDist = dist;
                             }
                         }
 
-                        // 이 후보가 지금까지 찾은 것 중 가장 간격이 넓다면 선택
                         if (minDist > maxMinDist) {
                             maxMinDist = minDist;
                             bestX = candidateX;
                         }
                     }
 
-                    // 확정된 위치 저장
                     placedItems.push({ x: bestX, y: topPercent });
-                    
-                    // DOM 생성
                     createSkinPoint(skin, chartArea, topPercent, bestX);
                 });
 
@@ -408,7 +374,6 @@
             el.style.top = `${topVal}%`;
             el.style.left = `${leftVal}%`;
             
-            // 기본 z-index는 점수가 높을수록(위쪽일수록) 살짝 높게, 하지만 호버 시엔 무시됨
             el.style.zIndex = Math.floor(skinData.avg * 10);
             
             let mainTier = 'F';
@@ -435,7 +400,6 @@
                 </div>
             `;
 
-            // [수정됨] 호버 딜레이 로직 (움찔거림 방지)
             let hoverTimer = null;
 
             const activate = () => {
@@ -445,92 +409,32 @@
                 el.classList.remove('active');
             };
 
-            // 마우스 들어옴: 딜레이 후 활성화
             el.addEventListener('mouseenter', () => {
                 if (hoverTimer) clearTimeout(hoverTimer);
-                hoverTimer = setTimeout(activate, 80); // 0.15초 딜레이
+                hoverTimer = setTimeout(activate, 80);
             });
 
-            // 마우스 나감: 즉시 비활성화 + 타이머 취소
             el.addEventListener('mouseleave', () => {
                 if (hoverTimer) clearTimeout(hoverTimer);
                 deactivate();
             });
 
-            // 모바일 터치 대응 (클릭 시 토글)
             el.addEventListener('click', (e) => {
-                // 이미 활성화 상태라면 끄기, 아니면 켜기
                 if (el.classList.contains('active')) {
                     deactivate();
                 } else {
-                    // 다른거 다 끄고 나만 켜기 (선택사항)
                     document.querySelectorAll('.skin-point.active').forEach(p => p.classList.remove('active'));
                     activate();
                 }
-                e.stopPropagation(); // 부모 클릭 방지
+                e.stopPropagation();
             });
 
             container.appendChild(el);
         }
 
-        // 배경 클릭 시 모든 팝업 닫기 (모바일 UX)
         document.body.addEventListener('click', () => {
             document.querySelectorAll('.skin-point.active').forEach(p => p.classList.remove('active'));
         });
-
-        // 마이그레이션 도구 (필요시 사용)
-        window.runMigration = async function() {
-            if (!confirm("정말 마이그레이션을 진행하시겠습니까?")) return;
-            console.log("Migration started...");
-            const subTitle = document.getElementById('total-submissions');
-            subTitle.textContent = "Migrating data... please wait.";
-
-            try {
-                const snapshot = await getDocs(collection(db, "tier_results"));
-                if (snapshot.empty) { alert("데이터가 없습니다."); return; }
-
-                const batch = writeBatch(db);
-                const statsRef = doc(db, "statistics", "summary");
-                
-                let totalDocs = 0;
-                const updates = { totalSubmissions: 0, skins: {} };
-                
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    totalDocs++;
-                    updates.totalSubmissions++;
-                    
-                    if (data.tiers) {
-                        Object.entries(data.tiers).forEach(([tier, items]) => {
-                            const score = scoreMap[tier];
-                            if (score === undefined) return;
-                            items.forEach(skinId => {
-                                const safeKey = skinId.replace(/\./g, '_');
-                                if (!updates.skins[safeKey]) {
-                                    updates.skins[safeKey] = { 
-                                        totalScore: 0, count: 0, id: skinId,
-                                        tierCounts: {S:0, A:0, B:0, C:0, D:0, F:0} 
-                                    };
-                                }
-                                updates.skins[safeKey].totalScore += score;
-                                updates.skins[safeKey].count += 1;
-                                if(updates.skins[safeKey].tierCounts[tier] !== undefined) {
-                                    updates.skins[safeKey].tierCounts[tier] += 1;
-                                }
-                            });
-                        });
-                    }
-                });
-                batch.set(statsRef, updates); 
-                await batch.commit();
-                alert(`마이그레이션 완료! 총 ${totalDocs}건 처리.`);
-                window.location.reload();
-            } catch (e) {
-                console.error(e);
-                alert("오류 발생: " + e.message);
-            }
-        };
     </script>
 </body>
 </html>
-
