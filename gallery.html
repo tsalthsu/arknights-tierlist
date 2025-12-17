@@ -181,9 +181,9 @@
                 <option value="jp">日本語</option>
                 <option value="cn">中文</option>
             </select>
-            <a href="index.html" class="nav-btn">Make List</a>
-            <a href="gallery.html" class="nav-btn active">Gallery</a>
-            <a href="stats.html" class="nav-btn">Stats</a>
+            <a href="index.html" class="nav-btn" id="nav-btn-make">Make List</a>
+            <a href="gallery.html" class="nav-btn active" id="nav-btn-gallery">Gallery</a>
+            <a href="stats.html" class="nav-btn" id="nav-btn-stats">Stats</a>
         </div>
     </div>
 
@@ -223,14 +223,36 @@
         const pathPrefix = "img/";
 
         const i18n = {
-            ko: { title: "2025 명일방주 스킨 연말정산" },
-            en: { title: "2025 Arknights Skin Year-End" },
-            jp: { title: "2025 アークナイツ コーデ 年末決算" },
-            cn: { title: "2025 明日方舟 时装 年终盘点" }
+            ko: { 
+                title: "2025 명일방주 스킨 연말정산",
+                // [수정] 네비게이션 번역 추가
+                navMake: "제작하기", navGallery: "갤러리", navStats: "통계" 
+            },
+            en: { 
+                title: "2025 Arknights Skin Year-End",
+                // [수정]
+                navMake: "Make List", navGallery: "Gallery", navStats: "Stats" 
+            },
+            jp: { 
+                title: "2025 アークナイツ コーデ 年末決算",
+                // [수정]
+                navMake: "作成", navGallery: "ギャラリー", navStats: "統計" 
+            },
+            cn: { 
+                title: "2025 明日方舟 时装 年终盘点",
+                // [수정]
+                navMake: "制作", navGallery: "画廊", navStats: "统计" 
+            }
         };
 
         window.changeLanguage = function(lang) {
-            document.getElementById('nav-title').textContent = i18n[lang].title;
+            const t = i18n[lang];
+            document.getElementById('nav-title').textContent = t.title;
+            // [수정] 네비게이션 텍스트 업데이트
+            document.getElementById('nav-btn-make').textContent = t.navMake;
+            document.getElementById('nav-btn-gallery').textContent = t.navGallery;
+            document.getElementById('nav-btn-stats').textContent = t.navStats;
+            
             localStorage.setItem('lang', lang); 
         };
 
