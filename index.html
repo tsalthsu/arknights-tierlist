@@ -28,7 +28,6 @@
             --shadow: rgba(0,0,0,0.5);
             --accent-color: #1976d2;
         }
-        /* [수정됨] body 대신 html 태그(root)에 적용된 속성을 인식 */
         [data-theme="light"] {
             --bg-color: #f0f2f5;
             --text-color: #333333;
@@ -50,7 +49,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* 배경색 전환 시 부드럽게 (깜빡임 방지 후 애니메이션 적용) */
             transition: background 0.3s, color 0.3s;
         }
 
@@ -209,7 +207,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        // [수정] writeBatch, doc, increment, setDoc 추가 (데이터 최적화를 위해 필요)
+        import { getFirestore, collection, addDoc, writeBatch, doc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC7z3JsiRzPSXnOdxtazbtq2J41oORv9og",
@@ -223,6 +222,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // [추가] 점수 계산을 위한 매핑
+        const scoreMap = { 'S': 5, 'A': 4, 'B': 3, 'C': 2, 'D': 1, 'F': 0 };
 
         const pathPrefix = "img/"; 
         const totalImages = 110; 
@@ -247,7 +249,6 @@
                 saveError: "저장 중 오류가 발생했습니다.<br>잠시 후 다시 시도해주세요.",
                 yes: "확인",
                 no: "취소",
-                // [수정] 네비게이션 번역 추가
                 navMake: "제작하기",
                 navGallery: "갤러리",
                 navStats: "통계"
@@ -263,7 +264,6 @@
                 saveError: "Error saving data.<br>Please try again later.",
                 yes: "Yes",
                 no: "No",
-                // [수정]
                 navMake: "Make List",
                 navGallery: "Gallery",
                 navStats: "Stats"
@@ -279,7 +279,6 @@
                 saveError: "保存エラーが発生しました。",
                 yes: "確認",
                 no: "キャンセル",
-                // [수정]
                 navMake: "作成",
                 navGallery: "ギャラリー",
                 navStats: "統計"
@@ -295,7 +294,6 @@
                 saveError: "保存失败，请稍后重试。",
                 yes: "确认",
                 no: "取消",
-                // [수정]
                 navMake: "制作",
                 navGallery: "画廊",
                 navStats: "统计"
@@ -305,7 +303,6 @@
         let currentLang = 'ko';
 
         window.onload = function() {
-            // [수정됨] 테마는 이미 head 스크립트에서 적용됨. 여기서는 아이콘만 맞춤.
             const savedTheme = localStorage.getItem('theme') || 'dark';
             const icon = document.getElementById('theme-icon');
             icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
@@ -324,7 +321,9 @@
             createFixedTiers();
         };
 
+        // [수정됨] 데이터 저장 및 통계 누적 함수
         window.submitTierList = async function() {
+            // 1. 데이터 준비
             const resultData = {
                 timestamp: new Date().toISOString(),
                 tiers: {}
@@ -332,6 +331,7 @@
             
             let totalPlacedCount = 0;
 
+            // DOM에서 배치된 카드 정보 수집
             document.querySelectorAll('.tier-row').forEach(row => {
                 const tierName = row.getAttribute('data-tier');
                 const items = [];
@@ -344,6 +344,7 @@
                 resultData.tiers[tierName] = items;
             });
 
+            // 최소 개수 체크
             if (totalPlacedCount < 5) {
                 window.showModal(i18n[currentLang].submitFail, null, false);
                 return;
@@ -355,7 +356,50 @@
             submitBtn.disabled = true;
 
             try {
-                await addDoc(collection(db, "tier_results"), resultData);
+                // [핵심 로직 변경] 일괄 쓰기(Batch) 시작
+                const batch = writeBatch(db);
+
+                // A. 개별 결과 저장 (기존 tier_results 컬렉션)
+                // addDoc 대신 doc()으로 레퍼런스를 먼저 만들고 batch.set 사용
+                const newHistoryRef = doc(collection(db, "tier_results"));
+                batch.set(newHistoryRef, resultData);
+
+                // B. 통계 요약 문서 업데이트 (statistics/summary 문서)
+                const statsRef = doc(db, "statistics", "summary");
+                
+                // 업데이트할 필드 준비
+                const updates = {
+                    totalSubmissions: increment(1),
+                    lastUpdated: new Date().toISOString()
+                };
+
+                // 각 스킨별 점수 및 카운트 누적
+                Object.entries(resultData.tiers).forEach(([tier, items]) => {
+                    const score = scoreMap[tier];
+                    if (score === undefined) return;
+
+                    items.forEach(skinId => {
+                        // Firestore 키에 '.'이 포함되면 안 되므로 '_'로 치환
+                        const safeKey = skinId.replace(/\./g, '_');
+                        
+                        // 점수 합산
+                        updates[`skins.${safeKey}.totalScore`] = increment(score);
+                        // 투표 횟수 합산
+                        updates[`skins.${safeKey}.count`] = increment(1);
+                        // 티어별 횟수 합산
+                        updates[`skins.${safeKey}.tierCounts.${tier}`] = increment(1);
+                        // 원본 ID 저장 (나중에 복원을 위해)
+                        updates[`skins.${safeKey}.id`] = skinId;
+                    });
+                });
+
+                // setDoc + merge: true를 사용하여 문서가 없으면 생성, 있으면 병합
+                batch.set(statsRef, updates, { merge: true });
+
+                // 배치 커밋 (전송)
+                await batch.commit();
+
+                // 성공 모달 표시 후 이동
                 window.showModal(i18n[currentLang].submitSuccess, () => {
                     window.location.href = 'gallery.html';
                 }, false);
@@ -393,7 +437,6 @@
             document.getElementById('modal-yes').textContent = t.yes;
             document.getElementById('modal-no').textContent = t.no;
             
-            // [수정] 네비게이션 텍스트 업데이트
             document.getElementById('nav-btn-make').textContent = t.navMake;
             document.getElementById('nav-btn-gallery').textContent = t.navGallery;
             document.getElementById('nav-btn-stats').textContent = t.navStats;
@@ -473,7 +516,6 @@
             document.getElementById('confirmModal').style.display = 'none';
         }
 
-        // [수정됨] 테마 토글 시 html 태그에 적용
         window.toggleTheme = function() {
             const html = document.documentElement;
             const currentTheme = html.getAttribute('data-theme') || 'dark';
